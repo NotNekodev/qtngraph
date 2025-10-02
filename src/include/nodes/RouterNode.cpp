@@ -14,20 +14,52 @@
 RouterNode::RouterNode(const QString &name, QGraphicsItem *parent) : Node(name, parent) {
     m_routerPrivateIP = getLocalRouterIP();
     m_routerPublicIP = getPublicRouterIP();
-
+    m_ispHostname = getISPHostname();
+    
     std::cout << "Public IP: " << m_routerPublicIP << std::endl;
     std::cout << "Private IP: " << m_routerPrivateIP << std::endl;
+    std::cout << "ISP Hostname: " << m_ispHostname << std::endl;
 
-    m_privateIPLabel = new QGraphicsTextItem(QString::fromStdString("PrivIP: " + m_routerPrivateIP), this);
+    m_privateIPLabel = new QGraphicsTextItem(QString::fromStdString("Private IP: " + m_routerPrivateIP), this);
     m_privateIPLabel->setDefaultTextColor(Qt::blue);
-    m_privateIPLabel->setPos(5, rect().height() - 25);
-
-    m_publicIPLabel = new QGraphicsTextItem(QString::fromStdString("PubIP: " + m_routerPublicIP), this);
+    
+    m_publicIPLabel = new QGraphicsTextItem(QString::fromStdString("Public IP: " + m_routerPublicIP), this);
     m_publicIPLabel->setDefaultTextColor(Qt::blue);
-    m_publicIPLabel->setPos(5, rect().height() - 25 -  m_privateIPLabel->boundingRect().height());
-
+    
     m_outputPortGateway = addPort("Gateway IP", Port::Output, Port::Type_IP);
     m_outputPortSubnet = addPort("Subnet", Port::Output, Port::Type_SUBNET);
+
+    qreal maxWidth = std::max({
+        m_privateIPLabel->boundingRect().width(),
+        m_publicIPLabel->boundingRect().width(),
+        
+    });
+
+    qreal outputPortsMaxWidth = std::max({
+        m_outputPortGateway->boundingRect().width() + 10,
+        m_outputPortSubnet->boundingRect().width() + 10,
+    });
+    
+    qreal totalHeight = m_privateIPLabel->boundingRect().height() +
+                        m_publicIPLabel->boundingRect().height();
+    
+    qreal padding = 10;
+    qreal topMargin = 30;
+    qreal bottomMargin = 30;
+    
+    QRectF newRect(0, 0, maxWidth + outputPortsMaxWidth + padding * 2, totalHeight + topMargin + bottomMargin);
+    setRect(newRect);
+    
+    m_privateIPLabel->setPos(padding, rect().height() - bottomMargin - m_privateIPLabel->boundingRect().height());
+    m_publicIPLabel->setPos(padding, m_privateIPLabel->pos().y() - m_publicIPLabel->boundingRect().height());
+    
+    m_outputPortGateway->setPos(rect().right() - m_outputPortGateway->boundingRect().width() + 10,
+                     rect().top() + label()->boundingRect().height() + 5 + 0);
+
+    m_outputPortSubnet->setPos(rect().right() - m_outputPortSubnet->boundingRect().width() + 10,
+                     rect().top() + label()->boundingRect().height() + 5 + 28);
+
+    m_outputPortGateway->setData<QString>(QString::fromStdString(m_routerPrivateIP));
 }
 
 std::string RouterNode::getLocalRouterIP() {
@@ -52,6 +84,21 @@ std::string RouterNode::getLocalRouterIP() {
 
     return "No gateway found";
 }
+
+std::string RouterNode::getISPHostname() {
+    struct sockaddr_in sa;
+    sa.sin_family = AF_INET;
+    inet_pton(AF_INET, getPublicRouterIP().c_str(), &sa.sin_addr);
+    
+    char host[1024];
+    int result = getnameinfo((struct sockaddr*)&sa, sizeof(sa),
+                            host, sizeof(host), NULL, 0, 0);
+    
+    if (result == 0) {
+        return host;
+    }
+    return "Unknown";
+} 
 
 std::string RouterNode::getPublicRouterIP() {
     struct hostent* host = gethostbyname("api.ipify.org");

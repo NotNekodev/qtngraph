@@ -11,6 +11,7 @@
 #include <QList>
 #include <functional>
 #include <any>
+#include <qgraphicsitem.h>
 
 class Port;
 class Connection;
@@ -73,6 +74,7 @@ public:
     Port* addPort(const QString &name, Port::PortDirection dir, Port::PortType type, int maxConnections = -1);
     QList<Port*> inputPorts() const { return m_inputPorts; }
     QList<Port*> outputPorts() const { return m_outputPorts; }
+    QGraphicsTextItem *label() const { return m_label; };
 private:
     QGraphicsTextItem *m_label;
     QList<Port*> m_inputPorts;
