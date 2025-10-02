@@ -3,18 +3,12 @@
 #include <QPainterPath>
 #include <QWheelEvent>
 #include <QScrollBar>
+#include <qnamespace.h>
 
 NetworkPort::NetworkPort(const QString &name, PortDirection dir, PortType type, QGraphicsItem *parent, int maxConnections)
     : QGraphicsRectItem(parent), m_dir(dir), m_type(type), m_name(name), m_maxConnections(maxConnections)
 {
-    QString typeLabel;
-    switch(type) {
-        case Type_IP: typeLabel = "IP"; break;
-        case Type_MAC: typeLabel = "MAC"; break;
-        default: typeLabel = "GEN"; break;
-    }
-
-    QString fullLabel = QString("%1 [%2]").arg(name).arg(typeLabel);
+    QString fullLabel = QString("%1").arg(name);
     m_label = new QGraphicsTextItem(fullLabel, this);
     m_label->setDefaultTextColor(Qt::black);
 
@@ -185,6 +179,8 @@ void Canvas::mousePressEvent(QMouseEvent *event)
         m_tempPath = new QGraphicsPathItem();
         m_tempPath->setPen(QPen(Qt::DashLine));
         m_scene->addItem(m_tempPath);
+    } else {
+        setCursor(Qt::SizeAllCursor);
     }
     QGraphicsView::mousePressEvent(event);
 }
@@ -219,6 +215,8 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event)
         event->accept();
         return;
     }
+
+    setCursor(Qt::ArrowCursor);
 
     if(m_draggingPort && m_tempPath) {
         QPointF scenePos = mapToScene(event->pos());
