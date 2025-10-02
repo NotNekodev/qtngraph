@@ -2,7 +2,7 @@
 #include <qcontainerfwd.h>
 #include <qgraphicsitem.h>
 
-class IPDisplayNode : public NetworkNode {
+class IPDisplayNode : public Node {
 public:
     IPDisplayNode(const QString& name, QGraphicsItem *parent = nullptr);
 
@@ -11,5 +11,5 @@ public:
 
 private:
     QGraphicsTextItem *m_ipLabel;
-    NetworkPort *m_inputPort;
+    Port *m_inputPort;
 };

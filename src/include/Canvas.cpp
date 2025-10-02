@@ -5,7 +5,7 @@
 #include <QScrollBar>
 #include <qnamespace.h>
 
-NetworkPort::NetworkPort(const QString &name, PortDirection dir, PortType type, QGraphicsItem *parent, int maxConnections)
+Port::Port(const QString &name, PortDirection dir, PortType type, QGraphicsItem *parent, int maxConnections)
     : QGraphicsRectItem(parent), m_dir(dir), m_type(type), m_name(name), m_maxConnections(maxConnections)
 {
     QString fullLabel = QString("%1").arg(name);
@@ -27,15 +27,15 @@ NetworkPort::NetworkPort(const QString &name, PortDirection dir, PortType type, 
 }
 
 
-void NetworkPort::addConnection(Connection *conn) {
+void Port::addConnection(Connection *conn) {
     if (m_maxConnections >= 0 && m_connections.size() >= m_maxConnections)
      return;
     m_connections.append(conn);
 }
 
-void NetworkPort::removeConnection(Connection *conn) { m_connections.removeAll(conn); }
+void Port::removeConnection(Connection *conn) { m_connections.removeAll(conn); }
 
-QVariant NetworkPort::itemChange(GraphicsItemChange change, const QVariant &value)
+QVariant Port::itemChange(GraphicsItemChange change, const QVariant &value)
 {
     if(change == ItemScenePositionHasChanged) {
         for(auto *conn : m_connections)
@@ -44,9 +44,9 @@ QVariant NetworkPort::itemChange(GraphicsItemChange change, const QVariant &valu
     return QGraphicsRectItem::itemChange(change, value);
 }
 
-void NetworkPort::mousePressEvent(QGraphicsSceneMouseEvent *event) { event->accept(); }
+void Port::mousePressEvent(QGraphicsSceneMouseEvent *event) { event->accept(); }
 
-Connection::Connection(NetworkPort *from, NetworkPort *to)
+Connection::Connection(Port *from, Port *to)
     : m_from(from), m_to(to)
 {
     if (to->maxConnections() >= 0 && to->connections().size() >= to->maxConnections())
@@ -74,12 +74,12 @@ void Connection::updatePath()
     QPointF p1 = m_from->scenePos();
     QPointF p2 = m_to->scenePos();
 
-    if(m_from->direction() == NetworkPort::Output)
+    if(m_from->direction() == Port::Output)
         p1 += QPointF(m_from->rect().width(), m_from->rect().height()/2);
     else
         p1 += QPointF(0, m_from->rect().height()/2);
 
-    if(m_to->direction() == NetworkPort::Input)
+    if(m_to->direction() == Port::Input)
         p2 += QPointF(0, m_to->rect().height()/2);
     else
         p2 += QPointF(m_to->rect().width(), m_to->rect().height()/2);
@@ -91,7 +91,7 @@ void Connection::updatePath()
     setPath(path);
 }
 
-NetworkNode::NetworkNode(const QString &name, QGraphicsItem *parent)
+Node::Node(const QString &name, QGraphicsItem *parent)
     : QGraphicsRectItem(parent)
 {
     setRect(0,0,200,140);
@@ -103,11 +103,11 @@ NetworkNode::NetworkNode(const QString &name, QGraphicsItem *parent)
     m_label->setPos(5,5);
 }
 
-NetworkPort* NetworkNode::addPort(const QString &name, NetworkPort::PortDirection dir, NetworkPort::PortType type, int maxConnections)
+Port* Node::addPort(const QString &name, Port::PortDirection dir, Port::PortType type, int maxConnections)
 {
-    NetworkPort *port = new NetworkPort(name, dir, type, this, maxConnections);
+    Port *port = new Port(name, dir, type, this, maxConnections);
 
-    if(dir == NetworkPort::Input) {
+    if(dir == Port::Input) {
         port->setPos(rect().left() - port->rect().width() + port->boundingRect().width() - 10,
                      m_label->boundingRect().height() + 5 + m_inputPorts.size()*28);
         m_inputPorts.append(port);
@@ -130,35 +130,35 @@ Canvas::Canvas(QWidget *parent)
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
 }
 
-NetworkNode* Canvas::addNode(const QString &name, const QPointF &pos)
+Node* Canvas::addNode(const QString &name, const QPointF &pos)
 {
-    NetworkNode *node = new NetworkNode(name);
+    Node *node = new Node(name);
     node->setPos(pos);
     m_scene->addItem(node);
     m_nodes.append(node);
     return node;
 }
 
-Connection* Canvas::connectPorts(NetworkPort *from, NetworkPort *to)
+Connection* Canvas::connectPorts(Port *from, Port *to)
 {
     if(!from || !to) return nullptr;
     if(from->direction() == to->direction()) return nullptr;
     if(from->portType() != to->portType()) return nullptr;
 
     Connection *conn = new Connection(
-        (from->direction() == NetworkPort::Output) ? from : to,
-        (from->direction() == NetworkPort::Output) ? to : from
+        (from->direction() == Port::Output) ? from : to,
+        (from->direction() == Port::Output) ? to : from
     );
     m_scene->addItem(conn);
     m_connections.append(conn);
     return conn;
 }
 
-NetworkPort* Canvas::findPortAt(const QPointF &scenePos)
+Port* Canvas::findPortAt(const QPointF &scenePos)
 {
     QList<QGraphicsItem*> itemsAt = m_scene->items(QRectF(scenePos-QPointF(5,5), QSizeF(10,10)));
     for(auto *item : itemsAt)
-        if(auto *port = dynamic_cast<NetworkPort*>(item))
+        if(auto *port = dynamic_cast<Port*>(item))
             return port;
     return nullptr;
 }
@@ -220,7 +220,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event)
 
     if(m_draggingPort && m_tempPath) {
         QPointF scenePos = mapToScene(event->pos());
-        NetworkPort *targetPort = findPortAt(scenePos);
+        Port *targetPort = findPortAt(scenePos);
         if(targetPort) connectPorts(m_draggingPort, targetPort);
 
         m_scene->removeItem(m_tempPath);
@@ -238,4 +238,4 @@ void Canvas::wheelEvent(QWheelEvent *event)
     else scale(1.0/scaleFactor,1.0/scaleFactor);
 }
 
-QList<NetworkNode*> Canvas::nodes() { return m_nodes; }
+QList<Node*> Canvas::nodes() { return m_nodes; }

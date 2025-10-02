@@ -12,16 +12,16 @@
 #include <functional>
 #include <any>
 
-class NetworkPort;
+class Port;
 class Connection;
-class NetworkNode;
+class Node;
 
-class NetworkPort : public QGraphicsRectItem {
+class Port : public QGraphicsRectItem {
 public:
     enum PortDirection { Input, Output };
     enum PortType { Type_Generic, Type_IP, Type_MAC };
 
-    NetworkPort(const QString &name, PortDirection dir, PortType type, QGraphicsItem *parent = nullptr, int maxconnections = -1);
+    Port(const QString &name, PortDirection dir, PortType type, QGraphicsItem *parent = nullptr, int maxconnections = -1);
 
     PortDirection direction() const { return m_dir; }
     PortType portType() const { return m_type; }
@@ -38,8 +38,8 @@ public:
     template<typename T>
     T getData() const { return std::any_cast<T>(privateData); }
 
-    void setOnConnected(std::function<void(NetworkPort*)> callback) { m_onConnected = callback; }
-    void triggerConnected(NetworkPort* other) { if(m_onConnected) m_onConnected(other); }
+    void setOnConnected(std::function<void(Port*)> callback) { m_onConnected = callback; }
+    void triggerConnected(Port* other) { if(m_onConnected) m_onConnected(other); }
 
 protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
@@ -52,38 +52,38 @@ private:
     int m_maxConnections;
     QGraphicsTextItem *m_label;
     QList<Connection *> m_connections;
-    std::function<void(NetworkPort*)> m_onConnected;
+    std::function<void(Port*)> m_onConnected;
 };
 
 class Connection : public QGraphicsPathItem {
 public:
-    Connection(NetworkPort *from, NetworkPort *to);
+    Connection(Port *from, Port *to);
     ~Connection();
     void updatePath();
 private:
-    NetworkPort *m_from;
-    NetworkPort *m_to;
+    Port *m_from;
+    Port *m_to;
 };
 
-class NetworkNode : public QGraphicsRectItem {
+class Node : public QGraphicsRectItem {
 public:
-    NetworkNode(const QString &name, QGraphicsItem *parent = nullptr);
-    NetworkPort* addPort(const QString &name, NetworkPort::PortDirection dir, NetworkPort::PortType type, int maxConnections = -1);
-    QList<NetworkPort*> inputPorts() const { return m_inputPorts; }
-    QList<NetworkPort*> outputPorts() const { return m_outputPorts; }
+    Node(const QString &name, QGraphicsItem *parent = nullptr);
+    Port* addPort(const QString &name, Port::PortDirection dir, Port::PortType type, int maxConnections = -1);
+    QList<Port*> inputPorts() const { return m_inputPorts; }
+    QList<Port*> outputPorts() const { return m_outputPorts; }
 private:
     QGraphicsTextItem *m_label;
-    QList<NetworkPort*> m_inputPorts;
-    QList<NetworkPort*> m_outputPorts;
+    QList<Port*> m_inputPorts;
+    QList<Port*> m_outputPorts;
 };
 
 class Canvas : public QGraphicsView {
     Q_OBJECT
 public:
     Canvas(QWidget *parent = nullptr);
-    NetworkNode* addNode(const QString &name, const QPointF &pos);
-    Connection* connectPorts(NetworkPort *from, NetworkPort *to);
-    QList<NetworkNode*> nodes();
+    Node* addNode(const QString &name, const QPointF &pos);
+    Connection* connectPorts(Port *from, Port *to);
+    QList<Node*> nodes();
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -92,12 +92,12 @@ protected:
     void wheelEvent(QWheelEvent *event) override;
 
 private:
-    NetworkPort* findPortAt(const QPointF &scenePos);
+    Port* findPortAt(const QPointF &scenePos);
     QGraphicsScene *m_scene;
-    QList<NetworkNode*> m_nodes;
+    QList<Node*> m_nodes;
     QList<Connection*> m_connections;
 
-    NetworkPort *m_draggingPort = nullptr;
+    Port *m_draggingPort = nullptr;
     QGraphicsPathItem *m_tempPath = nullptr;
 
     bool m_panning = false;

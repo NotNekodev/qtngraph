@@ -25,10 +25,10 @@ int main(int argc, char *argv[]) {
         addedInterfaces.insert(iface.name);
 
         QString nodeName = QString::fromStdString(iface.name);
-        NetworkNode* node = canvas.addNode(nodeName, QPointF(100 + canvas.nodes().size() * 200, 100));
+        Node* node = canvas.addNode(nodeName, QPointF(100 + canvas.nodes().size() * 200, 100));
 
-        NetworkPort* ipPort = node->addPort("IP", NetworkPort::Output, NetworkPort::Type_IP);
-        node->addPort("MAC", NetworkPort::Output, NetworkPort::Type_MAC);
+        Port* ipPort = node->addPort("IP", Port::Output, Port::Type_IP);
+        node->addPort("MAC", Port::Output, Port::Type_MAC);
 
         ipPort->setData<QString>(QString::fromStdString(iface.ipString()));
 
