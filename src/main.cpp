@@ -2,6 +2,7 @@
 #include "include/Canvas.hpp"
 #include "include/net/Interfaces.hpp"
 #include "include/nodes/IPDisplayNode.hpp"
+#include "include/nodes/RouterNode.hpp"
 #include <set>
 #include <iostream>
 
@@ -39,6 +40,10 @@ int main(int argc, char *argv[]) {
     IPDisplayNode* displayNode = new IPDisplayNode("IP Display");
     displayNode->setPos(100, 400);
     canvas.scene()->addItem(displayNode);
+
+    RouterNode *routerNode = new RouterNode("Router");
+    routerNode->setPos(200, 400);
+    canvas.scene()->addItem(routerNode);
 
     return a.exec();
 }

@@ -16,9 +16,30 @@ Port::Port(const QString &name, PortDirection dir, PortType type, QGraphicsItem 
     qreal padding = 6;
     QRectF rect(0, 0, textRect.width() + padding*2, textRect.height());
 
+    QColor color;
+
+    switch (type) {
+    case Port::Type_Generic:
+        color = Qt::red;
+        break;
+    case Port::Type_IP:
+        color = Qt::green;
+        break;
+    case Port::Type_MAC:
+        color = Qt::blue;
+        break;
+    case Port::Type_SUBNET:
+        color = QColor(255, 0, 255);
+        break;
+    }
+
+    m_color = color;
+
+    m_label->setDefaultTextColor(color.darker(150));
+
     setRect(rect);
-    setBrush((dir == Input) ? QColor(255,200,200) : QColor(200,255,200));
-    setPen(QPen(Qt::black));
+    setBrush(QColor(color.red(), color.green(), color.blue(), 128));
+    setPen(QPen(color));
     setFlag(ItemSendsScenePositionChanges);
     setAcceptedMouseButtons(Qt::LeftButton);
     setZValue(1);
@@ -52,7 +73,7 @@ Connection::Connection(Port *from, Port *to)
     if (to->maxConnections() >= 0 && to->connections().size() >= to->maxConnections())
         return;
 
-    setPen(QPen(Qt::darkBlue, 2));
+    setPen(QPen(from->color(), 2)); // the nice thing is that color = type so we dont have to blend colors for example
     if(from) from->addConnection(this);
     if(to) to->addConnection(this);
     updatePath();

@@ -19,7 +19,7 @@ class Node;
 class Port : public QGraphicsRectItem {
 public:
     enum PortDirection { Input, Output };
-    enum PortType { Type_Generic, Type_IP, Type_MAC };
+    enum PortType { Type_Generic, Type_IP, Type_MAC, Type_SUBNET };
 
     Port(const QString &name, PortDirection dir, PortType type, QGraphicsItem *parent = nullptr, int maxconnections = -1);
 
@@ -28,6 +28,7 @@ public:
     QString name() const { return m_name; }
     int maxConnections() const { return m_maxConnections; };
     QList<Connection *> connections() const { return m_connections; };
+    QColor color() const { return m_color; };
 
     void addConnection(Connection *conn);
     void removeConnection(Connection *conn);
@@ -49,6 +50,7 @@ private:
     PortDirection m_dir;
     PortType m_type;
     QString m_name;
+    QColor m_color;
     int m_maxConnections;
     QGraphicsTextItem *m_label;
     QList<Connection *> m_connections;

@@ -13,12 +13,14 @@ set(SOURCES
     src/include/Canvas.cpp
     src/include/net/Interfaces.cpp
     src/include/nodes/IPDisplayNode.cpp
+    src/include/nodes/RouterNode.cpp
 )
 
 set(HEADERS
     src/include/Canvas.hpp
     src/include/net/Interfaces.hpp
     src/include/nodes/IPDisplayNode.hpp
+    src/include/nodes/RouterNode.hpp
 )
 
 # Create executable
