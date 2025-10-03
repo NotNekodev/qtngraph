@@ -3,7 +3,13 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+
+#ifdef __sun__
+#include <sys/ethernet.h>
+#else
 #include <net/ethernet.h>
+#endif
+
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <cstring>
@@ -121,14 +127,17 @@ void NetworkRegistry::scanForInterfaces() {
             memset(&ifr, 0, sizeof(ifr));
             strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ-1);
             ifr.ifr_addr.sa_family = AF_INET;
+
+#ifndef __sun__
             if (ioctl(sock, SIOCGIFMTU, &ifr) == 0)
                 iface.mtu = ifr.ifr_mtu;
+#endif
 
 #ifdef __linux__
             // Linux MAC address
             if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0)
                 iface.mac.assign(std::vector<uint8_t>(ifr.ifr_hwaddr.sa_data, ifr.ifr_hwaddr.sa_data + 6));
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__) || defined(__MidnightBSD__) || defined(__Bitrig__)
             // BSD MAC address
             if (ifa->ifa_addr->sa_family == AF_LINK) {
                 struct sockaddr_dl* sdl = (struct sockaddr_dl*)ifa->ifa_addr;
