@@ -15,49 +15,95 @@ RouterNode::RouterNode(const QString &name, QGraphicsItem *parent) : Node(name, 
     m_routerPrivateIP = getLocalRouterIP();
     m_routerPublicIP = getPublicRouterIP();
     m_ispHostname = getISPHostname();
-    
     std::cout << "Public IP: " << m_routerPublicIP << std::endl;
     std::cout << "Private IP: " << m_routerPrivateIP << std::endl;
     std::cout << "ISP Hostname: " << m_ispHostname << std::endl;
 
     m_privateIPLabel = new QGraphicsTextItem(QString::fromStdString("Private IP: " + m_routerPrivateIP), this);
     m_privateIPLabel->setDefaultTextColor(Qt::blue);
-    
     m_publicIPLabel = new QGraphicsTextItem(QString::fromStdString("Public IP: " + m_routerPublicIP), this);
     m_publicIPLabel->setDefaultTextColor(Qt::blue);
-    
+
     m_outputPortGateway = addPort("Gateway IP", Port::Output, Port::Type_IP);
-    m_outputPortSubnet = addPort("Subnet", Port::Output, Port::Type_SUBNET);
+    m_inputPortSubnet = addPort("Subnet", Port::Input, Port::Type_SUBNET);
 
     qreal maxWidth = std::max({
         m_privateIPLabel->boundingRect().width(),
         m_publicIPLabel->boundingRect().width(),
-        
     });
 
     qreal outputPortsMaxWidth = std::max({
         m_outputPortGateway->boundingRect().width() + 10,
-        m_outputPortSubnet->boundingRect().width() + 10,
+        m_inputPortSubnet->boundingRect().width() + 10,
     });
-    
+
     qreal totalHeight = m_privateIPLabel->boundingRect().height() +
                         m_publicIPLabel->boundingRect().height();
-    
+
     qreal padding = 10;
     qreal topMargin = 30;
     qreal bottomMargin = 30;
-    
+
     QRectF newRect(0, 0, maxWidth + outputPortsMaxWidth + padding * 2, totalHeight + topMargin + bottomMargin);
     setRect(newRect);
-    
+
+    // Position text labels
     m_privateIPLabel->setPos(padding, rect().height() - bottomMargin - m_privateIPLabel->boundingRect().height());
     m_publicIPLabel->setPos(padding, m_privateIPLabel->pos().y() - m_publicIPLabel->boundingRect().height());
-    
-    m_outputPortGateway->setPos(rect().right() - m_outputPortGateway->boundingRect().width() + 10,
-                     rect().top() + label()->boundingRect().height() + 5 + 0);
 
-    m_outputPortSubnet->setPos(rect().right() - m_outputPortSubnet->boundingRect().width() + 10,
-                     rect().top() + label()->boundingRect().height() + 5 + 28);
+    // Calculate the occupied text area (top of public IP to bottom of private IP)
+    qreal textAreaTop = m_publicIPLabel->pos().y();
+    qreal textAreaBottom = m_privateIPLabel->pos().y() + m_privateIPLabel->boundingRect().height();
+    qreal textMargin = 5;
+
+    // Initial port positions
+    qreal initialPortY = rect().top() + label()->boundingRect().height() + 5;
+    
+    // Function to determine best port position
+    auto calculatePortPosition = [&](qreal portHeight) -> qreal {
+        qreal portBottom = initialPortY + portHeight;
+        
+        // Check if port would overlap with text area
+        if (initialPortY < textAreaBottom + textMargin && portBottom > textAreaTop - textMargin) {
+            // Port would overlap, determine if closer to top or bottom
+            qreal distanceToTop = textAreaTop - initialPortY;
+            qreal distanceToBottom = rect().bottom() - textAreaBottom;
+            
+            if (distanceToTop >= distanceToBottom) {
+                // Closer to top, position above text area
+                return textAreaTop - textMargin - portHeight;
+            } else {
+                // Closer to bottom, position below text area
+                return textAreaBottom + textMargin;
+            }
+        }
+        
+        // No overlap, use initial position
+        return initialPortY;
+    };
+
+    // Position output port on the right side
+    qreal outputPortY = calculatePortPosition(m_outputPortGateway->boundingRect().height());
+    m_outputPortGateway->setPos(rect().right() - m_outputPortGateway->boundingRect().width() + 10, outputPortY);
+
+    // Position input port on the left side
+    qreal inputPortY = calculatePortPosition(m_inputPortSubnet->boundingRect().height());
+    m_inputPortSubnet->setPos(rect().left() - 10, inputPortY);
+
+    // Calculate required height to accommodate all elements with bottom margin
+    qreal maxPortBottom = std::max({
+        outputPortY + m_outputPortGateway->boundingRect().height(),
+        inputPortY + m_inputPortSubnet->boundingRect().height()
+    });
+    
+    qreal requiredHeight = maxPortBottom + textMargin;  // 5px margin at bottom
+    
+    // Resize rect if needed
+    if (requiredHeight > rect().height()) {
+        QRectF adjustedRect = rect();
+        adjustedRect.setHeight(requiredHeight);
+        setRect(adjustedRect);
+    }
 
     m_outputPortGateway->setData<QString>(QString::fromStdString(m_routerPrivateIP));
 }

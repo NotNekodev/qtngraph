@@ -2,13 +2,27 @@
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <arpa/inet.h>
-#include <netpacket/packet.h>
+#include <netinet/in.h>
 #include <net/ethernet.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <cstring>
 #include <cstdio>
 #include <map>
+
+#ifdef __linux__
+#include <netpacket/packet.h>
+#else
+#include <sys/types.h>
+#include <netinet/in.h>
+#endif
+
+#ifdef __linux__
+#include <netpacket/packet.h>
+#else
+#include <sys/types.h>
+#include <netinet/in.h>
+#endif
 
 std::string MacAddress::toString() const {
     char buf[18];
@@ -30,6 +44,27 @@ std::string NetworkInterface::ipString() const {
     return std::string(buf);
 }
 
+std::string NetworkInterface::subnetString() const {
+    struct in_addr addr;
+    addr.s_addr = htonl(subnet);
+    char buf[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &addr, buf, INET_ADDRSTRLEN);
+    return std::string(buf);
+}
+
+int NetworkInterface::getCIDR() const {
+    uint32_t mask = netmask;
+    int count = 0;
+    while (mask) {
+        count += mask & 1;
+        mask >>= 1;
+    }
+    return count;
+}
+
+std::string NetworkInterface::subnetCIDR() const {
+    return subnetString() + "/" + std::to_string(getCIDR());
+}
 
 NetworkInterface* NetworkRegistry::getInterfaceByName(const std::string& name) {
     for (auto& iface : interfaces)
@@ -78,22 +113,32 @@ void NetworkRegistry::scanForInterfaces() {
             iface.isRunning = (ifa->ifa_flags & IFF_RUNNING) != 0;
             iface.isWireless = false;
             iface.mtu = 0;
-            iface.ip = iface.netmask = iface.broadcast = 0;
+            iface.ip = iface.netmask = iface.broadcast = iface.subnet = 0;
 
+            // MTU
             struct ifreq ifr;
             memset(&ifr, 0, sizeof(ifr));
             strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ-1);
             ifr.ifr_addr.sa_family = AF_INET;
-
             if (ioctl(sock, SIOCGIFMTU, &ifr) == 0)
                 iface.mtu = ifr.ifr_mtu;
 
+#ifdef __linux__
+            // Linux MAC address
             if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0)
                 iface.mac.assign(std::vector<uint8_t>(ifr.ifr_hwaddr.sa_data, ifr.ifr_hwaddr.sa_data + 6));
-
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+            // BSD MAC address
+            if (ifa->ifa_addr->sa_family == AF_LINK) {
+                struct sockaddr_dl* sdl = (struct sockaddr_dl*)ifa->ifa_addr;
+                unsigned char* mac = (unsigned char*)LLADDR(sdl);
+                iface.mac.assign(mac, mac + sdl->sdl_alen);
+            }
+#endif
             ifaceMap[name] = iface;
         }
 
+        // IPv4 info
         if (ifa->ifa_addr->sa_family == AF_INET) {
             NetworkInterface& iface = ifaceMap[name];
             
@@ -106,8 +151,11 @@ void NetworkRegistry::scanForInterfaces() {
                 inet_ntop(AF_INET, &nm->sin_addr, buf, sizeof(buf));
                 iface.netmaskString = buf;
                 iface.netmask = ntohl(nm->sin_addr.s_addr);
+
+                iface.subnet = iface.ip & iface.netmask;
             }
 
+#ifdef __linux__
             if (ifa->ifa_ifu.ifu_broadaddr) {
                 sockaddr_in* bc = reinterpret_cast<sockaddr_in*>(ifa->ifa_ifu.ifu_broadaddr);
                 char buf[INET_ADDRSTRLEN];
@@ -115,12 +163,12 @@ void NetworkRegistry::scanForInterfaces() {
                 iface.broadcastString = buf;
                 iface.broadcast = ntohl(bc->sin_addr.s_addr);
             }
+#endif
         }
     }
 
-    for (auto& pair : ifaceMap) {
+    for (auto& pair : ifaceMap)
         interfaces.push_back(pair.second);
-    }
 
     close(sock);
     freeifaddrs(ifaddr);

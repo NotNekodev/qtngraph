@@ -29,8 +29,14 @@ public:
     bool isRunning;
     bool isWireless;
     int mtu;
+    uint32_t subnet;
 
     std::string ipString() const;
+    std::string subnetString() const;
+    uint32_t getSubnet() const;
+
+    std::string subnetCIDR() const;
+    int getCIDR() const;
 };
 
 class NetworkRegistry {

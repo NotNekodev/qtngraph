@@ -12,6 +12,8 @@ public:
     std::string getPublicRouterIP();
     std::string getISPHostname();
 
+    Port *outputPortSubnet() const { return m_inputPortSubnet; };
+
 private:
     std::string m_routerPrivateIP;
     std::string m_routerPublicIP;
@@ -21,6 +23,6 @@ private:
     QGraphicsTextItem *m_privateIPLabel;
     QGraphicsTextItem *m_ispHostnameLabel;
 
-    Port *m_outputPortSubnet;
+    Port *m_inputPortSubnet;
     Port *m_outputPortGateway;
 };

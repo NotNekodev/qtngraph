@@ -3,6 +3,7 @@
 #include "include/net/Interfaces.hpp"
 #include "include/nodes/IPDisplayNode.hpp"
 #include "include/nodes/RouterNode.hpp"
+#include <qcontainerfwd.h>
 #include <set>
 #include <iostream>
 
@@ -18,6 +19,10 @@ int main(int argc, char *argv[]) {
     registry.scanForInterfaces();
 
     std::set<std::string> addedInterfaces;
+
+    RouterNode *routerNode = new RouterNode("Router");
+    routerNode->setPos(200, 400);
+    canvas.scene()->addItem(routerNode);
 
     for (auto& iface : registry.interfaces) {
         if (addedInterfaces.find(iface.name) != addedInterfaces.end())
@@ -41,9 +46,6 @@ int main(int argc, char *argv[]) {
     displayNode->setPos(100, 400);
     canvas.scene()->addItem(displayNode);
 
-    RouterNode *routerNode = new RouterNode("Router");
-    routerNode->setPos(200, 400);
-    canvas.scene()->addItem(routerNode);
 
     return a.exec();
 }
