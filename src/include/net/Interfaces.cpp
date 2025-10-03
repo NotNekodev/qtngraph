@@ -15,6 +15,7 @@
 #else
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <net/if_dl.h>
 #endif
 
 #ifdef __linux__

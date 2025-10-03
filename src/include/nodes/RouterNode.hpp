@@ -12,7 +12,7 @@ public:
     std::string getPublicRouterIP();
     std::string getISPHostname();
 
-    Port *outputPortSubnet() const { return m_inputPortSubnet; };
+    Port *inputPortSubnet() const { return m_inputPortSubnet; };
 
 private:
     std::string m_routerPrivateIP;
