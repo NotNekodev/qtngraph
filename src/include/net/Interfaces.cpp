@@ -16,6 +16,7 @@
 #include <cstring>
 #include <cstdio>
 #include <map>
+#include <filesystem>
 
 #ifdef __linux__
 #include <netpacket/packet.h>
@@ -30,6 +31,19 @@
 #else
 #include <sys/types.h>
 #include <netinet/in.h>
+#endif
+
+#ifdef __linux__
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#elif defined(__sun__) || defined(__sun)
+#include <ifaddrs.h>
+#include <net/if.h>
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <net/if_dl.h>
 #endif
 
 std::string MacAddress::toString() const {
@@ -203,4 +217,67 @@ void NetworkRegistry::scanForInterfaces() {
 
     close(sock);
     freeifaddrs(ifaddr);
+}
+
+NetworkInterface::Type NetworkInterface::detectType(const std::string& ifaceName) {
+#ifdef __linux__
+    namespace fs = std::filesystem;
+
+    if (fs::exists("/sys/class/net/" + ifaceName + "/bridge"))
+        return IFACE_TYPE_BRIDGE;
+
+    if (fs::exists("/sys/class/net/" + ifaceName + "/tun_flags"))
+        return IFACE_TYPE_TAP;
+
+    if (fs::exists("/sys/class/net/" + ifaceName + "/device"))
+        return IFACE_TYPE_PHYS;
+
+    return IFACE_TYPE_UNKNOWN;
+
+#elif defined(__sun__) || defined(__sun) || \
+      defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+    struct ifaddrs* ifaddr;
+    if (getifaddrs(&ifaddr) == -1)
+        return IFACE_TYPE_UNKNOWN;
+
+    Type result = IFACE_TYPE_UNKNOWN;
+    for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_name || ifaceName != ifa->ifa_name)
+            continue;
+
+        // Loopback interfaces
+        if (ifa->ifa_flags & IFF_LOOPBACK) {
+            result = IFACE_TYPE_PHYS; // treat loopback as physical-ish
+            break;
+        }
+
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+        if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_LINK) {
+            struct sockaddr_dl* sdl = (struct sockaddr_dl*)ifa->ifa_addr;
+            if (sdl->sdl_type == IFT_ETHER)
+                result = IFACE_TYPE_PHYS;
+            else if (sdl->sdl_type == IFT_BRIDGE)
+                result = IFACE_TYPE_BRIDGE;
+            else if (sdl->sdl_type == IFT_TUN || sdl->sdl_type == IFT_SLIP)
+                result = IFACE_TYPE_TAP;
+            break;
+        }
+#elif defined(__sun__) || defined(__sun)
+        // On Solaris/SunOS we don't have AF_LINK; rely on flags
+        if (ifa->ifa_flags & IFF_POINTOPOINT)
+            result = IFACE_TYPE_TAP;
+        else if (ifa->ifa_flags & IFF_BROADCAST)
+            result = IFACE_TYPE_PHYS;
+        else
+            result = IFACE_TYPE_UNKNOWN;
+        break;
+#endif
+    }
+
+    freeifaddrs(ifaddr);
+    return result;
+
+#else
+    return IFACE_TYPE_UNKNOWN;
+#endif
 }

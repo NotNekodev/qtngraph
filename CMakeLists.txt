@@ -22,6 +22,7 @@ set(SOURCES
     src/include/nodes/IPDisplayNode.cpp
     src/include/nodes/RouterNode.cpp
     src/include/nodes/SubnetNode.cpp
+    src/include/nodes/InterfaceNode.cpp
 )
 
 set(HEADERS
@@ -30,6 +31,8 @@ set(HEADERS
     src/include/nodes/IPDisplayNode.hpp
     src/include/nodes/RouterNode.hpp
     src/include/nodes/SubnetNode.hpp
+    src/include/nodes/InterfaceNode.hpp
+
     src/include/util/FormatUtils.hpp
 )
 

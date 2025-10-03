@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <filesystem>
 
 class MacAddress {
 private:
@@ -34,7 +33,7 @@ public:
     int mtu;
     uint32_t subnet;
     Type type;
-
+    
     std::string ipString() const;
     std::string subnetString() const;
     uint32_t getSubnet() const;
@@ -42,20 +41,7 @@ public:
     std::string subnetCIDR() const;
     int getCIDR() const;
 
-    static Type detectType(const std::string& ifaceName) {
-        namespace fs = std::filesystem;
-
-        if (fs::exists("/sys/class/net/" + ifaceName + "/bridge"))
-            return IFACE_TYPE_BRIDGE;
-
-        if (fs::exists("/sys/class/net/" + ifaceName + "/tun_flags"))
-            return IFACE_TYPE_TAP;
-
-        if (fs::exists("/sys/class/net/" + ifaceName + "/device"))
-            return IFACE_TYPE_PHYS;
-
-        return IFACE_TYPE_UNKNOWN;
-    }
+    static Type detectType(const std::string& ifaceName);
 };
 
 class NetworkRegistry {

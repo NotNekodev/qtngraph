@@ -27,9 +27,9 @@ public:
     PortDirection direction() const { return m_dir; }
     PortType portType() const { return m_type; }
     QString name() const { return m_name; }
-    int maxConnections() const { return m_maxConnections; };
-    QList<Connection *> connections() const { return m_connections; };
-    QColor color() const { return m_color; };
+    int maxConnections() const { return m_maxConnections; }
+    QList<Connection *> connections() const { return m_connections; }
+    QColor color() const { return m_color; }
 
     void addConnection(Connection *conn);
     void removeConnection(Connection *conn);
@@ -74,11 +74,17 @@ public:
     Port* addPort(const QString &name, Port::PortDirection dir, Port::PortType type, int maxConnections = -1);
     QList<Port*> inputPorts() const { return m_inputPorts; }
     QList<Port*> outputPorts() const { return m_outputPorts; }
-    QGraphicsTextItem *label() const { return m_label; };
+    QGraphicsTextItem *label() const { return m_label; }
+    QGraphicsTextItem* addChildText(const QString &text, const QColor &color = Qt::black, const qreal textScaleFactor = 1);
+
+    void adjustSize();
 private:
+
+    void layoutChildren();
     QGraphicsTextItem *m_label;
     QList<Port*> m_inputPorts;
     QList<Port*> m_outputPorts;
+    QList<QGraphicsTextItem*> m_children;
 };
 
 class Canvas : public QGraphicsView {

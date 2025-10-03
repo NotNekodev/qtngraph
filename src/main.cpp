@@ -1,17 +1,15 @@
 #include <QApplication>
 #include "include/Canvas.hpp"
 #include "include/net/Interfaces.hpp"
-#include "include/nodes/IPDisplayNode.hpp"
 #include "include/nodes/RouterNode.hpp"
 #include "include/nodes/SubnetNode.hpp"
+#include "include/nodes/InterfaceNode.hpp"
 #include <algorithm>
-#include <qcontainerfwd.h>
 #include <set>
-#include <iostream>
 #include <vector>
 
 int main(int argc, char *argv[]) {
-    QApplication a(argc, argv);
+    QApplication app(argc, argv);
 
     Canvas canvas;
     canvas.setWindowTitle(":3");
@@ -21,66 +19,60 @@ int main(int argc, char *argv[]) {
     NetworkRegistry registry;
     registry.scanForInterfaces();
 
+    std::set<std::string> addedRouters;
     std::set<std::string> addedInterfaces;
 
-    RouterNode *routerNode = new RouterNode("Router");
-    routerNode->setPos(200, 400);
-    canvas.scene()->addItem(routerNode);
+    std::vector<QString> subnets;
+    std::vector<SubnetNode*> subnetNodes;
+    std::vector<RouterNode*> routerNodes;
 
-    std::vector<std::string> subnets;
+    auto gateways = RouterNode::getLocalRouterIPs();
+    int routerIndex = 0;
 
-    std::vector<SubnetNode*> subnet_nodes; 
+    for (auto &[gatewayIP, subnet, netmask] : gateways) {
+        if (addedRouters.count(gatewayIP))
+            continue;
+
+        addedRouters.insert(gatewayIP);
+        QString nodeName = QString("Router %1").arg(routerIndex++);
+        RouterNode* routerNode = new RouterNode(nodeName, gatewayIP, subnet, netmask);
+        routerNode->setPos(200 + routerIndex * 200, 400);
+        canvas.scene()->addItem(routerNode);
+        routerNodes.push_back(routerNode);
+
+        std::string cidr = routerNode->subnetCIDR();
+        SubnetNode* subnetNode;
+
+        auto it = std::find(subnets.begin(), subnets.end(), QString::fromStdString(cidr));
+        if (it == subnets.end()) {
+            subnetNode = new SubnetNode(QString::fromStdString(cidr));
+            subnetNode->setPos(100 + routerIndex * 200, 600);
+            canvas.scene()->addItem(subnetNode);
+            subnetNodes.push_back(subnetNode);
+            subnets.push_back(QString::fromStdString(cidr));
+        } else {
+            size_t index = std::distance(subnets.begin(), it);
+            subnetNode = subnetNodes[index];
+        }
+
+        canvas.connectPorts(subnetNode->subnetOutputPort(), routerNode->inputPortSubnet());
+    }
 
     for (auto& iface : registry.interfaces) {
-        if (addedInterfaces.find(iface.name) != addedInterfaces.end())
+        if (addedInterfaces.count(iface.name))
             continue;
 
         addedInterfaces.insert(iface.name);
+        QPointF pos(100 + canvas.nodes().size() * 200, 100);
 
-        QString nodeName = QString::fromStdString(iface.name);
-        Node* node = canvas.addNode(nodeName, QPointF(100 + canvas.nodes().size() * 200, 100));
-
-        Port* ipPort = node->addPort("IP", Port::Output, Port::Type_IP);
-        node->addPort("MAC", Port::Output, Port::Type_MAC);
-        ipPort->setData<QString>(QString::fromStdString(iface.ipString()));
-
-        Port* subnetInPort = node->addPort("Subnet", Port::Input, Port::Type_SUBNET, 1);
-    
-        std::cout << nodeName.toStdString() << ": "
-                << ipPort->getData<QString>().toStdString() << std::endl;
-    
-        SubnetNode *node_subn;
-        auto it = std::find(subnets.begin(), subnets.end(), iface.subnetCIDR());
-        if (it == subnets.end()) {
-            node_subn = new SubnetNode(QString::fromStdString(iface.subnetCIDR()));
-            node_subn->setPos(100, 600);
-            canvas.scene()->addItem(node_subn);
-            subnet_nodes.push_back(node_subn);
-            subnets.push_back(iface.subnetCIDR());
-            std::cout << "Adding node for subnet: " << iface.subnetCIDR() << std::endl;
+        if (iface.type == NetworkInterface::IFACE_TYPE_PHYS || iface.type == NetworkInterface::IFACE_TYPE_UNKNOWN) { // treat unknown as a phyiscal interface
+            InterfaceNode* ifaceNode = new InterfaceNode(&iface, canvas, subnets, subnetNodes, routerNodes, pos);
+            canvas.scene()->addItem(ifaceNode);
         } else {
-            size_t index = std::distance(subnets.begin(), it);
-            node_subn = subnet_nodes[index];
+            InterfaceNode* ifaceNode = new InterfaceNode(&iface, canvas, subnets, subnetNodes, routerNodes, pos);
+            canvas.scene()->addItem(ifaceNode);
         }
-    
-        Connection *conn = canvas.connectPorts(node_subn->subnetOutputPort(), subnetInPort);
     }
 
-    SubnetNode *node_subn;
-    auto it = std::find(subnets.begin(), subnets.end(), routerNode->subnetCIDR());
-    if (it == subnets.end()) {
-        node_subn = new SubnetNode(QString::fromStdString(routerNode->subnetCIDR()));
-        node_subn->setPos(100, 600);
-        canvas.scene()->addItem(node_subn);
-        subnet_nodes.push_back(node_subn);
-        subnets.push_back(routerNode->subnetCIDR());
-        std::cout << "Adding node for subnet: " << routerNode->subnetCIDR() << std::endl;
-    } else {
-        size_t index = std::distance(subnets.begin(), it);
-        node_subn = subnet_nodes[index];
-    }
-    
-    Connection *conn = canvas.connectPorts(node_subn->subnetOutputPort(), routerNode->inputPortSubnet());
-
-    return a.exec();
+    return app.exec();
 }
