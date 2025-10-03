@@ -172,6 +172,9 @@ Connection* Canvas::connectPorts(Port *from, Port *to)
     );
     m_scene->addItem(conn);
     m_connections.append(conn);
+
+    from->connections().push_back(conn);
+    to->connections().push_back(conn);
     return conn;
 }
 

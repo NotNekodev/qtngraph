@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Canvas.hpp"
+#include <cstdint>
 #include <qcontainerfwd.h>
 #include <qgraphicsitem.h>
 
@@ -11,6 +12,8 @@ public:
     std::string getLocalRouterIP();
     std::string getPublicRouterIP();
     std::string getISPHostname();
+
+    std::string subnetCIDR();
 
     Port *inputPortSubnet() const { return m_inputPortSubnet; };
 
@@ -25,4 +28,7 @@ private:
 
     Port *m_inputPortSubnet;
     Port *m_outputPortGateway;
+
+    uint32_t netmask;
+    uint32_t subnet;
 };

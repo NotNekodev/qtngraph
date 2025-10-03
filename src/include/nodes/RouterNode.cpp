@@ -47,58 +47,45 @@ RouterNode::RouterNode(const QString &name, QGraphicsItem *parent) : Node(name, 
     QRectF newRect(0, 0, maxWidth + outputPortsMaxWidth + padding * 2, totalHeight + topMargin + bottomMargin);
     setRect(newRect);
 
-    // Position text labels
     m_privateIPLabel->setPos(padding, rect().height() - bottomMargin - m_privateIPLabel->boundingRect().height());
     m_publicIPLabel->setPos(padding, m_privateIPLabel->pos().y() - m_publicIPLabel->boundingRect().height());
 
-    // Calculate the occupied text area (top of public IP to bottom of private IP)
     qreal textAreaTop = m_publicIPLabel->pos().y();
     qreal textAreaBottom = m_privateIPLabel->pos().y() + m_privateIPLabel->boundingRect().height();
     qreal textMargin = 5;
 
-    // Initial port positions
     qreal initialPortY = rect().top() + label()->boundingRect().height() + 5;
     
-    // Function to determine best port position
     auto calculatePortPosition = [&](qreal portHeight) -> qreal {
         qreal portBottom = initialPortY + portHeight;
         
-        // Check if port would overlap with text area
         if (initialPortY < textAreaBottom + textMargin && portBottom > textAreaTop - textMargin) {
-            // Port would overlap, determine if closer to top or bottom
             qreal distanceToTop = textAreaTop - initialPortY;
             qreal distanceToBottom = rect().bottom() - textAreaBottom;
             
             if (distanceToTop >= distanceToBottom) {
-                // Closer to top, position above text area
                 return textAreaTop - textMargin - portHeight;
             } else {
-                // Closer to bottom, position below text area
                 return textAreaBottom + textMargin;
             }
         }
         
-        // No overlap, use initial position
         return initialPortY;
     };
 
-    // Position output port on the right side
     qreal outputPortY = calculatePortPosition(m_outputPortGateway->boundingRect().height());
     m_outputPortGateway->setPos(rect().right() - m_outputPortGateway->boundingRect().width() + 10, outputPortY);
 
-    // Position input port on the left side
     qreal inputPortY = calculatePortPosition(m_inputPortSubnet->boundingRect().height());
     m_inputPortSubnet->setPos(rect().left() - 10, inputPortY);
 
-    // Calculate required height to accommodate all elements with bottom margin
     qreal maxPortBottom = std::max({
         outputPortY + m_outputPortGateway->boundingRect().height(),
         inputPortY + m_inputPortSubnet->boundingRect().height()
     });
     
-    qreal requiredHeight = maxPortBottom + textMargin;  // 5px margin at bottom
+    qreal requiredHeight = maxPortBottom + textMargin;
     
-    // Resize rect if needed
     if (requiredHeight > rect().height()) {
         QRectF adjustedRect = rect();
         adjustedRect.setHeight(requiredHeight);
@@ -108,26 +95,59 @@ RouterNode::RouterNode(const QString &name, QGraphicsItem *parent) : Node(name, 
     m_outputPortGateway->setData<QString>(QString::fromStdString(m_routerPrivateIP));
 }
 
+std::string RouterNode::subnetCIDR() {
+    uint32_t mask = netmask;
+    int count = 0;
+    while (mask) {
+        count += mask & 1;
+        mask >>= 1;
+    }
+
+    struct in_addr subnet_addr;
+    subnet_addr.s_addr = this->subnet;
+    std::string subnet_str = inet_ntoa(subnet_addr);
+
+    return subnet_str + "/" + std::to_string(count);
+}
+
 std::string RouterNode::getLocalRouterIP() {
     std::ifstream route("/proc/net/route");
     std::string line;
-
-    std::getline(route, line);
+    std::getline(route, line); // Skip header
 
     while (std::getline(route, line)) {
-        char iface[16], dest[9], gateway[9];
-        sscanf(line.c_str(), "%s %s %s", iface, dest, gateway);
+        char iface[16], dest[9], gateway[9], flags[5], refcnt[5], use[5], metric[5], mask[9];
+        sscanf(line.c_str(), "%s %s %s %s %s %s %s %s", iface, dest, gateway, flags, refcnt, use, metric, mask);
 
         if (strcmp(dest, "00000000") == 0) {
             unsigned int gw;
             sscanf(gateway, "%X", &gw);
-            
+
             struct in_addr addr;
             addr.s_addr = gw;
+            
+            std::ifstream route2("/proc/net/route");
+            std::string line2;
+            std::getline(route2, line2);
+
+            while (std::getline(route2, line2)) {
+                char iface2[16], dest2[9], gw2[9], flags2[5], refcnt2[5], use2[5], metric2[5], mask2[9];
+                sscanf(line2.c_str(), "%s %s %s %s %s %s %s %s", iface2, dest2, gw2, flags2, refcnt2, use2, metric2, mask2);
+
+                if (strcmp(iface, iface2) == 0 && strcmp(gw2, "00000000") == 0 && strcmp(mask2, "00000000") != 0) {
+                    unsigned int subnet_dest, subnet_mask;
+                    sscanf(dest2, "%X", &subnet_dest);
+                    sscanf(mask2, "%X", &subnet_mask);
+
+                    this->netmask = subnet_mask;
+                    this->subnet = subnet_dest;
+                    break;
+                }
+            }
+
             return inet_ntoa(addr);
         }
     }
-
     return "No gateway found";
 }
 

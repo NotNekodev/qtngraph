@@ -21,6 +21,7 @@ set(SOURCES
     src/include/net/Interfaces.cpp
     src/include/nodes/IPDisplayNode.cpp
     src/include/nodes/RouterNode.cpp
+    src/include/nodes/SubnetNode.cpp
 )
 
 set(HEADERS
@@ -28,6 +29,7 @@ set(HEADERS
     src/include/net/Interfaces.hpp
     src/include/nodes/IPDisplayNode.hpp
     src/include/nodes/RouterNode.hpp
+    src/include/nodes/SubnetNode.hpp
 )
 
 # Create executable
