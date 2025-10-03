@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 class MacAddress {
 private:
@@ -17,6 +18,8 @@ public:
 
 class NetworkInterface {
 public:
+    enum Type { IFACE_TYPE_BRIDGE, IFACE_TYPE_PHYS, IFACE_TYPE_TAP, IFACE_TYPE_UNKNOWN };
+
     std::string name;
     uint32_t ip;
     uint32_t netmask;
@@ -30,6 +33,7 @@ public:
     bool isWireless;
     int mtu;
     uint32_t subnet;
+    Type type;
 
     std::string ipString() const;
     std::string subnetString() const;
@@ -37,6 +41,21 @@ public:
 
     std::string subnetCIDR() const;
     int getCIDR() const;
+
+    static Type detectType(const std::string& ifaceName) {
+        namespace fs = std::filesystem;
+
+        if (fs::exists("/sys/class/net/" + ifaceName + "/bridge"))
+            return IFACE_TYPE_BRIDGE;
+
+        if (fs::exists("/sys/class/net/" + ifaceName + "/tun_flags"))
+            return IFACE_TYPE_TAP;
+
+        if (fs::exists("/sys/class/net/" + ifaceName + "/device"))
+            return IFACE_TYPE_PHYS;
+
+        return IFACE_TYPE_UNKNOWN;
+    }
 };
 
 class NetworkRegistry {

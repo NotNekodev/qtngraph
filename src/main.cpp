@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
         node->addPort("MAC", Port::Output, Port::Type_MAC);
         ipPort->setData<QString>(QString::fromStdString(iface.ipString()));
 
-        Port* subnetInPort = node->addPort("Subnet", Port::Input, Port::Type_SUBNET);
+        Port* subnetInPort = node->addPort("Subnet", Port::Input, Port::Type_SUBNET, 1);
     
         std::cout << nodeName.toStdString() << ": "
                 << ipPort->getData<QString>().toStdString() << std::endl;

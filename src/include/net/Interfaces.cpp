@@ -1,5 +1,6 @@
 #include "Interfaces.hpp"
 #include <ifaddrs.h>
+#include <iostream>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -177,8 +178,28 @@ void NetworkRegistry::scanForInterfaces() {
         }
     }
 
-    for (auto& pair : ifaceMap)
-        interfaces.push_back(pair.second);
+    for (auto& pair : ifaceMap) {
+        NetworkInterface& iface = pair.second;
+
+        iface.type = NetworkInterface::detectType(iface.name);
+
+        switch (iface.type) {
+        case NetworkInterface::IFACE_TYPE_BRIDGE:
+            std::cout << "Device " << iface.name << " is a bridge" << std::endl;
+            break;
+        case NetworkInterface::IFACE_TYPE_PHYS:
+            std::cout << "Device " << iface.name << " is a physical device" << std::endl;
+            break;
+        case NetworkInterface::IFACE_TYPE_TAP:
+            std::cout << "Device " << iface.name << " is a tun/tap device" << std::endl;
+            break;
+        case NetworkInterface::IFACE_TYPE_UNKNOWN:
+            std::cout << "Device " << iface.name << " has an unknown iface type" << std::endl;
+            break;
+        }
+
+        interfaces.push_back(iface);
+    }
 
     close(sock);
     freeifaddrs(ifaddr);

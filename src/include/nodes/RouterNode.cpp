@@ -25,7 +25,7 @@ RouterNode::RouterNode(const QString &name, QGraphicsItem *parent) : Node(name, 
     m_publicIPLabel->setDefaultTextColor(Qt::blue);
 
     m_outputPortGateway = addPort("Gateway IP", Port::Output, Port::Type_IP);
-    m_inputPortSubnet = addPort("Subnet", Port::Input, Port::Type_SUBNET);
+    m_inputPortSubnet = addPort("Subnet", Port::Input, Port::Type_SUBNET, 1);
 
     qreal maxWidth = std::max({
         m_privateIPLabel->boundingRect().width(),

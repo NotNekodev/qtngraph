@@ -30,6 +30,7 @@ set(HEADERS
     src/include/nodes/IPDisplayNode.hpp
     src/include/nodes/RouterNode.hpp
     src/include/nodes/SubnetNode.hpp
+    src/include/util/FormatUtils.hpp
 )
 
 # Create executable
