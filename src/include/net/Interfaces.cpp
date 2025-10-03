@@ -133,7 +133,7 @@ void NetworkRegistry::scanForInterfaces() {
             if (ifa->ifa_addr->sa_family == AF_LINK) {
                 struct sockaddr_dl* sdl = (struct sockaddr_dl*)ifa->ifa_addr;
                 unsigned char* mac = (unsigned char*)LLADDR(sdl);
-                iface.mac.assign(mac, mac + sdl->sdl_alen);
+                iface.mac.assign(std::vector<uint8_t>(mac, mac + 6));
             }
 #endif
             ifaceMap[name] = iface;
