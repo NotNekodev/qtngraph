@@ -36,6 +36,10 @@ add_executable(${PROJECT_NAME} src/main.cpp ${SOURCES} ${HEADERS})
 # Link Qt libraries
 target_link_libraries(${PROJECT_NAME} Qt6::Core Qt6::Gui Qt6::Widgets)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "SunOS")
+    target_link_libraries(${PROJECT_NAME} socket nsl)
+endif()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
     AUTOMOC ON
     AUTOUIC ON
