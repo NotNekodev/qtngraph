@@ -33,7 +33,7 @@ public:
     int mtu;
     uint32_t subnet;
     Type type;
-    
+
     std::string ipString() const;
     std::string subnetString() const;
     uint32_t getSubnet() const;
@@ -42,6 +42,7 @@ public:
     int getCIDR() const;
 
     static Type detectType(const std::string& ifaceName);
+    static std::vector<std::string> getBridgeMembers(const std::string& bridgeName);
 };
 
 class NetworkRegistry {

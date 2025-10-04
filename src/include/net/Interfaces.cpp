@@ -281,3 +281,42 @@ NetworkInterface::Type NetworkInterface::detectType(const std::string& ifaceName
     return IFACE_TYPE_UNKNOWN;
 #endif
 }
+
+
+std::vector<std::string> NetworkInterface::getBridgeMembers(const std::string &bridgeName) {
+    std::vector<std::string> members;
+
+#if defined(__linux__)
+    std::filesystem::path brDir("/sys/class/net/" + bridgeName + "/brif");
+    if (std::filesystem::exists(brDir)) {
+        for (auto &entry : std::filesystem::directory_iterator(brDir)) {
+            members.push_back(entry.path().filename().string());
+        }
+    }
+
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__sun__)
+    // Fallback: parse `ifconfig <bridge>` output
+    std::string cmd = "ifconfig " + bridgeName + " 2>/dev/null";
+    FILE *pipe = popen(cmd.c_str(), "r");
+    if (!pipe) return members;
+
+    char buffer[256];
+    while (fgets(buffer, sizeof(buffer), pipe)) {
+        std::string line(buffer);
+        // On BSD/SunOS, member NICs usually appear as "member: <name>"
+        std::size_t pos = line.find("member:");
+        if (pos != std::string::npos) {
+            std::string nic = line.substr(pos + 7);
+            // trim whitespace
+            nic.erase(0, nic.find_first_not_of(" \t\n"));
+            nic.erase(nic.find_last_not_of(" \t\n")+1);
+            members.push_back(nic);
+        }
+    }
+    pclose(pipe);
+
+#endif
+
+    return members;
+}
+

@@ -269,13 +269,17 @@ void Canvas::mousePressEvent(QMouseEvent *event)
 
 void Canvas::mouseMoveEvent(QMouseEvent *event)
 {
-    if(m_panning) {
-        QPointF delta = mapToScene(m_lastPanPoint) - mapToScene(event->pos());
-        translate(delta.x(), delta.y());
+    if (m_panning) {
+        QPoint delta = event->pos() - m_lastPanPoint;
+
+        horizontalScrollBar()->setValue(horizontalScrollBar()->value() - delta.x());
+        verticalScrollBar()->setValue(verticalScrollBar()->value() - delta.y());
+
         m_lastPanPoint = event->pos();
         event->accept();
         return;
     }
+
     if(m_draggingPort && m_tempPath) {
         QPointF p1 = m_draggingPort->scenePos() + QPointF(m_draggingPort->rect().width()/2, m_draggingPort->rect().height()/2);
         QPointF p2 = mapToScene(event->pos());

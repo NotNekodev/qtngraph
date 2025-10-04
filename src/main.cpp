@@ -7,12 +7,11 @@
 #include <algorithm>
 #include <set>
 #include <vector>
-
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
     Canvas canvas;
-    canvas.setWindowTitle(":3");
+    canvas.setWindowTitle("qtngraph");
     canvas.resize(1200, 800);
     canvas.show();
 
@@ -65,13 +64,8 @@ int main(int argc, char *argv[]) {
         addedInterfaces.insert(iface.name);
         QPointF pos(100 + canvas.nodes().size() * 200, 100);
 
-        if (iface.type == NetworkInterface::IFACE_TYPE_PHYS || iface.type == NetworkInterface::IFACE_TYPE_UNKNOWN) { // treat unknown as a phyiscal interface
-            InterfaceNode* ifaceNode = new InterfaceNode(&iface, canvas, subnets, subnetNodes, routerNodes, pos);
+        InterfaceNode* ifaceNode = new InterfaceNode(&iface, canvas, subnets, subnetNodes, routerNodes, pos);
             canvas.scene()->addItem(ifaceNode);
-        } else {
-            InterfaceNode* ifaceNode = new InterfaceNode(&iface, canvas, subnets, subnetNodes, routerNodes, pos);
-            canvas.scene()->addItem(ifaceNode);
-        }
     }
 
     return app.exec();
